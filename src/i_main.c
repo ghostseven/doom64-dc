@@ -1421,7 +1421,7 @@ int I_SavePakSettings(doom64_settings_t *msettings)
 	if (!vmudev)
 		return PFS_ERR_NOPACK;
 
-	file_t d = fs_open(get_vmu_fn(vmudev, "doom64stg"), O_WRONLY | O_CREAT);
+	file_t d = fs_open(get_vmu_fn(vmudev, "doom64stg"), O_WRONLY | O_CREAT | O_META);
 	if (!d)
 		return PFS_ERR_ID_FATAL;
 
@@ -1480,7 +1480,7 @@ int I_SavePakFile(void)
 	if (!vmudev)
 		return PFS_ERR_NOPACK;
 
-	file_t d = fs_open(get_vmu_fn(vmudev, "doom64"), O_WRONLY);
+	file_t d = fs_open(get_vmu_fn(vmudev, "doom64"), O_WRONLY | O_META);
 	if (!d)
 		return PFS_ERR_ID_FATAL;
 
@@ -1543,7 +1543,7 @@ int I_ReadPakSettings(doom64_settings_t *msettings)
 	if (!vmudev)
 		return PFS_ERR_NOPACK;
 
-	file_t d = fs_open(get_vmu_fn(vmudev, "doom64stg"), O_RDONLY);
+	file_t d = fs_open(get_vmu_fn(vmudev, "doom64stg"), O_RDONLY | O_META);
 	if (!d)
 		return PFS_ERR_ID_FATAL;
 
@@ -1625,7 +1625,7 @@ int I_ReadPakFile(void)
 	Pak_Data = NULL;
 	Pak_Size = 0;
 
-	file_t d = fs_open(get_vmu_fn(vmudev, "doom64"), O_RDONLY);
+	file_t d = fs_open(get_vmu_fn(vmudev, "doom64"), O_RDONLY | O_META);
 	if (!d)
 		return PFS_ERR_ID_FATAL;
 
@@ -1661,7 +1661,7 @@ int I_ReadPakFile(void)
 
 	fs_close(d);
 
-	if(vmu_pkg_parse(data, &pkg) < 0) {
+	if(vmu_pkg_parse(data, size, &pkg) < 0) {
 		free(data);
 		return PFS_ERR_ID_FATAL;
 	}
@@ -1702,7 +1702,7 @@ int I_CreatePakFile(void)
 	memset(Pak_Data, 0, Pak_Size);
 	pkg.data = Pak_Data;
 
-	file_t d = fs_open(get_vmu_fn(vmudev, "doom64"), O_RDWR | O_CREAT);
+	file_t d = fs_open(get_vmu_fn(vmudev, "doom64"), O_RDWR | O_CREAT | O_META);
 	if (!d)
 		return PFS_ERR_ID_FATAL;
 
