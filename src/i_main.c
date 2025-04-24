@@ -863,11 +863,11 @@ int I_GetControllerData(void)
 		kbd = maple_dev_status(controller);
 
 		// ATTACK
-		if (kbd->cond.modifiers & (KBD_MOD_LCTRL | KBD_MOD_RCTRL))
+		if (kbd->cond.modifiers.raw & (KBD_MOD_LCTRL | KBD_MOD_RCTRL))
 			ret |= PAD_Z_TRIG;
 
 		// USE
-		if (kbd->cond.modifiers & (KBD_MOD_LSHIFT | KBD_MOD_RSHIFT))
+		if (kbd->cond.modifiers.raw & (KBD_MOD_LSHIFT | KBD_MOD_RSHIFT))
 			ret |= PAD_RIGHT_C;
 
 		for (int i = 0; i < MAX_PRESSED_KEYS; i++) {
