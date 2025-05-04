@@ -1,19 +1,11 @@
-# Doom 64 for Dreamcast (updated 2025/02/15) #
+# Doom 64 for Dreamcast (updated 2025/05/04) #
 
-Prior releases have been buggy. That turned out to an interaction between Doom 64 and some low-level CPU cache management code in KOS. I will hesitate to call it a bug as we don't know *why* the change that fixes it, actually fixes it (yet).
-
-The copy of KOS bundled with this repo has the change for this cache issue. Doom 64 for Dreamcast is now stable, so stable we have been unable to reproduce any of the previous hangs for about a month now.
-
-***WARNING 1: If you have built Doom 64 from this repo prior to February 16 2025 @ 05:00 UTC, you will need to unpack/rebuild `doom64_kos.tgz` as well as doing a `make clean` and `make` to regenerate the game data files.***
-
-***WARNING 2: If you have built Doom 64 from this repo prior to February 15 2025 @ 05:00 UTC, you will need to regenerate the WADs from `doom64.z64` as the generated files have changed.***
-	
-***WARNING 3: If you have played with VMU saving prior to January 16 2025, you need to erase any existing `doom64stg` file ("D64 settings / Doom 64 settings data"). This can be done from the BIOS VMU manager or from the Doom 64 VMU manager (hold START button on legal screen) prior to starting your next game. There are new breaking changes to support future extensibility.***
+Important note: Doom 64 finally works and is stable when built against KOS `master`.
 
 **Please pay close attention to the README as significant new features have been added and the build instructions have changed.**
 
 
-#### NEW FEATURES ####
+#### FEATURES ####
 
 - Enemy, projectile and sector movement interpolation. Everything moves nicely and smoothly when the frame rate is above 30 FPS.
 
@@ -27,7 +19,7 @@ The copy of KOS bundled with this repo has the change for this cache issue. Doom
 - 8bpp world textures. Increased performance when filtering is disabled. Reduces VRAM pressure / frequency of texture flushing (reduced frequency of graphical glitches in bonus levels).
 
 
-- VMU SAVING IS NOW SUPPORTED. **5 free blocks are required.**
+- VMU SAVING IS SUPPORTED. **5 free blocks are required.**
 
 Note: There must be a controller in the first controller port, and the VMU must be inserted into the first slot of the first controller.
 
@@ -94,34 +86,13 @@ It should work on most other Linux environments.
 
 You will need a host/native GCC install and a full working Dreamcast/KallistiOS compiler toolchain install.
 
-See [https://dreamcast.wiki/Getting_Started_with_Dreamcast_development] for instructions.
+See [ https://dreamcast.wiki/Getting_Started_with_Dreamcast_development ] for instructions.
 
-A modified version of KOS is provided as part of the Doom 64 repo. This is the only version that will guarantee a working game. Please do not file github issues if you are not using it. They will be closed with prejudice.
+Doom 64 can be built using an unmodified copy of KOS cloned directly from the official repo. I have tested it with `master` as of 2025/05/04 (commit `2762cef`).
 
-These instructions assume it is the only version of KOS on your system. If you already have KOS installed, please move it elsewhere before you begin.
+If you are going to file a Github issue, make sure you are using that version to test your problem.
 
-To set it up, after building/installing compilers, open a terminal and do the following (please pay attention to the `#` part):
-
-    cd ~/doom64-dc
-    tar xzf doom64_kos.tgz
-    # WARNING: YOU NEED TO REPLACE any existing kos directory, please move it to a safe place first if KOS already exists
-    # i.e.  mv /opt/toolchains/dc/kos ~/BACKUP_OF_MY_OLD_KOS
-    cd ./doom64_kos
-    cp -r kos /opt/toolchains/dc/
-    cd ..
-    rm -rf ./doom64_kos
-    exit
-
-Once you have the unpacked kos directory in place, open a new terminal.
-
-Source the provided `environ.sh` file and build KOS as follows:
-
-    cd /opt/toolchains/dc/kos
-    source ./environ.sh
-    make
-    exit
-
-Now you have a version of KOS identical to the version I use for development.
+Please follow the instructions for building KOS found in the wiki: [ https://dreamcast.wiki/Getting_Started_with_Dreamcast_development#Configuring_and_compiling_KOS_and_kos-ports ].
 
 **How to generate Doom 64 disc image**
 
@@ -348,6 +319,8 @@ Ruslan Rostovtsev [https://github.com/DC-SWAT] for pointing me toward streaming 
 Piers Holdaway [https://github.com/Mittens0407] for doing performance modifications on the Knee Deep In The Dead/z0k content.
 
 "StrikerTheHedgefox" [https://github.com/StrikerTheHedgefox] for starting with testing and moving on to many new additions to the project (motion interpolation, vmu stats). 
+
+Donald Haase [https://github.com/QuzarDC] for helping get Doom 64 working on KOS `master` again.
 
 Everyone who helped test builds along the way and offered endless moral support, thanks.
 
