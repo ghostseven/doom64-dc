@@ -4,7 +4,6 @@
 #include <stdint.h>
 #include <strings.h>
 #include <math.h>
-
 typedef int fixed_t;
 
 #include "i_main.h"
@@ -30,7 +29,7 @@ static inline uint32_t Swap32(uint32_t val)
 		(((val)&0x0000ff00) << 8) | (((val)&0x000000ff) << 24));
 }
 
-short inline SwapShort(short dat)
+static inline short SwapShort(short dat)
 {
 	return ((((dat << 8) | (dat >> 8 & 0xff)) << 16) >> 16);
 }
