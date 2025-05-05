@@ -22,7 +22,7 @@
 ==============================================================================
 */
 
-static boolean crushchange; // 800A5690
+static int crushchange; // 800A5690
 static boolean nofit; // 800A5694
 
 /*
@@ -146,7 +146,7 @@ boolean P_ChangeSector(sector_t *sector, boolean crunch) // 800103BC
 	players[0].lastsoundsector = NULL;
 
 	nofit = false;
-	crushchange = crunch;
+	crushchange = (int)crunch;
 
 	// [d64] handle special case if sector's special is 666
 	if (sector->special == 666)
