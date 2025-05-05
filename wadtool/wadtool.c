@@ -18,7 +18,13 @@
 #define REINDEX_FLATS 1
 #define GENERATE_BUMP_WAD 0
 
-#define ORIGINAL_DOOM64_WAD_SIZE 6101168
+#define DOOM64_1_0_OFFSET 408848
+#define DOOM64_1_0_WAD_SIZE 6101168
+#define DOOM64_1_0_LUMP_OFFSET 0
+#define DOOM64_1_1_OFFSET 409024
+#define DOOM64_1_1_WAD_SIZE 6107164
+#define DOOM64_1_1_LUMP_OFFSET 1
+
 #define NIGHTDIVE_WAD_SIZE 15103212
 
 #define NUMTEX 503
@@ -940,7 +946,7 @@ void generate_alt_wad(char *output_directory)
 	free(altlumpinfo);
 }
 
-void generate_dreamcast_iwad(char *output_directory)
+void generate_dreamcast_iwad(char *output_directory, int lump_offset)
 {
 	// this is the beginning of writing out the Dreamcast version of the IWAD
 	sprintf(output_paths, "%s/pow2.wad", output_directory);
@@ -977,7 +983,7 @@ void generate_dreamcast_iwad(char *output_directory)
 			continue;
 		}
 
-		if ((i >= LUMP_MAP01) && (i <= LUMP_MAP33)) {
+		if ((i >= LUMP_MAP01 + lump_offset) && (i <= LUMP_MAP33 + lump_offset)) {
 			continue;
 		}
 
@@ -1077,7 +1083,7 @@ void generate_dreamcast_iwad(char *output_directory)
 				}
 			}
 
-			else if ((i >= LUMP_MAP01) && (i <= LUMP_MAP33)) {
+			else if ((i >= LUMP_MAP01 + lump_offset) && (i <= LUMP_MAP33 + lump_offset)) {
 				if (lumpinfo[i].name[0] & 0x80) {
 					data_size = lumpinfo[i+1].filepos - lumpinfo[i].filepos;
 				}
@@ -1174,7 +1180,7 @@ void generate_dreamcast_iwad(char *output_directory)
 	}
 
 	for (int i = 0; i < numlumps; i++) {
-		if ((i >= LUMP_MAP01) && (i <= LUMP_MAP33)) {
+		if ((i >= LUMP_MAP01 + lump_offset) && (i <= LUMP_MAP33 + lump_offset)) {
 			continue;
 		}
 
@@ -1287,34 +1293,118 @@ int main (int argc, char **argv)
 	char *path_to_rom = argv[1];
 	char *output_directory = argv[2];
 
-	doom64wad = (uint8_t *)malloc(ORIGINAL_DOOM64_WAD_SIZE);
-	if (NULL == doom64wad) {
-		fprintf(stderr, "Could not allocate 6101168 bytes for original Doom 64 WAD.\n");
-		exit(-1);
-	}
-
 	FILE *z64_fd = fopen(argv[1], "rb"); // doom64.z64
 	if (NULL == z64_fd) {
 		fprintf(stderr, "Could not open Doom 64 ROM for reading.\n");
 		exit(-1);
 	}
 
-	int z64_seek_rv = fseek(z64_fd, 408848, SEEK_SET);
+	int final_seek = 0;
+	int wad_size = 0;
+	int lump_offset = 0;
+	char iwad[4];
+
+	int z64_seek_rv = fseek(z64_fd, DOOM64_1_0_OFFSET, SEEK_SET);
 	if (-1 == z64_seek_rv) {
-		fprintf(stderr, "Could not seek to IWAD in Doom 64 ROM: %s\n", strerror(errno));
+		fprintf(stderr, "Could not seek to IWAD 1.0 in Doom 64 ROM: %s\n", strerror(errno));
+		fclose(z64_fd);
 		exit(-1);
 	}
+
 	size_t z64_total_read = 0;
-	size_t z64_wad_rv = fread(doom64wad, 1, ORIGINAL_DOOM64_WAD_SIZE, z64_fd);
+	size_t z64_wad_rv = fread(&iwad, 1, 4, z64_fd);
 	if (-1 == z64_wad_rv) {
 		fprintf(stderr, "Could not read IWAD from Doom 64 WAD: %s\n", strerror(errno));
+		fclose(z64_fd);
+		exit(-1);
+	}
+
+    if ( 4 == z64_wad_rv ) {
+    	if (strncasecmp(iwad, "IWAD", 4)) {
+    		fprintf(stderr, "invalid iwad id %c %c %c %c for 1.0\n",
+				iwad[0],
+				iwad[1],
+				iwad[2],
+				iwad[3]
+			);
+
+    		z64_seek_rv = fseek(z64_fd, DOOM64_1_1_OFFSET, SEEK_SET);
+    		if (-1 == z64_seek_rv) {
+    			fprintf(stderr, "Could not seek to IWAD 1.1 in Doom 64 ROM: %s\n", strerror(errno));
+    			fclose(z64_fd);
+    			exit(-1);
+    		}
+
+    		z64_wad_rv = fread(&iwad, 1, 4, z64_fd);
+    		if (-1 == z64_wad_rv) {
+    			fprintf(stderr, "Could not read IWAD from Doom 64 WAD: %s\n", strerror(errno));
+    			fclose(z64_fd);
+    			exit(-1);
+    		}
+
+    		if ( 4 == z64_wad_rv ) {
+    			if (strncasecmp(iwad, "IWAD", 4)) {
+    				fprintf(stderr, "invalid iwad id %c %c %c %c for 1.1\n",
+						iwad[0],
+						iwad[1],
+						iwad[2],
+						iwad[3]
+					);
+    				fclose(z64_fd);
+					exit(-1);
+	            } else {
+    				fprintf(stderr, "Found IWAD 1.1 identifier in Doom 64 ROM\n");
+              		final_seek = DOOM64_1_1_OFFSET;
+	                wad_size = DOOM64_1_1_WAD_SIZE;
+                    lump_offset = DOOM64_1_1_LUMP_OFFSET;
+	            }
+    		} else {
+    			fprintf(stderr, "Could not read full IWAD 1.1 identifier in Doom 64 ROM: %s\n", strerror(errno));
+    			fclose(z64_fd);
+    			exit(-1);
+            }
+
+    	} else {
+    		fprintf(stderr, "Found IWAD 1.0 identifier in Doom 64 ROM\n");
+          	final_seek = DOOM64_1_0_OFFSET;
+            wad_size = DOOM64_1_0_WAD_SIZE;
+            lump_offset = DOOM64_1_0_LUMP_OFFSET;
+        }
+    } else {
+    	fprintf(stderr, "Could not read full IWAD 1.0 identifier in Doom 64 ROM: %s\n", strerror(errno));
+    	fclose(z64_fd);
+    	exit(-1);
+    }
+
+	z64_seek_rv = fseek(z64_fd, final_seek, SEEK_SET);
+	if (-1 == z64_seek_rv) {
+		fprintf(stderr, "Could not seek to %d in Doom 64 ROM: %s\n", final_seek, strerror(errno));
+		fclose(z64_fd);
+		exit(-1);
+	}
+
+	doom64wad = (uint8_t *)malloc(wad_size);
+	if (NULL == doom64wad) {
+		fprintf(stderr, "Could not allocate %d bytes for original Doom 64 WAD.\n", wad_size);
+		fclose(z64_fd);
+		exit(-1);
+	}
+
+	z64_total_read = 0;
+	z64_wad_rv = fread(doom64wad, 1, wad_size, z64_fd);
+	if (-1 == z64_wad_rv) {
+		fprintf(stderr, "Could not read IWAD from Doom 64 WAD: %s\n", strerror(errno));
+		free(doom64wad);
+		fclose(z64_fd);
 		exit(-1);
 	}
 	z64_total_read += z64_wad_rv;
-	while (z64_total_read < ORIGINAL_DOOM64_WAD_SIZE) {
-		z64_wad_rv = fread(doom64wad + z64_total_read, 1, ORIGINAL_DOOM64_WAD_SIZE - z64_total_read, z64_fd);
+	while (z64_total_read < wad_size) {
+		z64_wad_rv = fread(doom64wad + z64_total_read, 1, wad_size - z64_total_read, z64_fd);
 		if (-1 == z64_wad_rv) {
 			fprintf(stderr, "Could not read IWAD from Doom 64 WAD: %s\n", strerror(errno));
+			free(doom64wad);
+			fclose(z64_fd);
 			exit(-1);
 		}
 		z64_total_read += z64_wad_rv;
@@ -1322,20 +1412,11 @@ int main (int argc, char **argv)
 	int z64_close = fclose(z64_fd);
 	if (0 != z64_close) {
 		fprintf(stderr, "Error closing Doom 64 ROM: %s\n", strerror(errno));
+		free(doom64wad);
 		exit(-1);
 	}
 
 	memcpy(&wadfileptr, doom64wad, sizeof(wadinfo_t));
-
-	if (strncasecmp(wadfileptr.identification, "IWAD", 4)) {
-		fprintf(stderr, "invalid iwad id %c %c %c %c\n",
-			wadfileptr.identification[0],
-			wadfileptr.identification[1],
-			wadfileptr.identification[2],
-			wadfileptr.identification[3]
-		);
-		exit(-1);
-	}
 
 	numlumps = wadfileptr.numlumps;
 	lumpinfo = (lumpinfo_t *)malloc(numlumps * sizeof(lumpinfo_t));
@@ -1372,7 +1453,7 @@ int main (int argc, char **argv)
 
 	generate_nonenemy_tex(output_directory);
 
-	generate_dreamcast_iwad(output_directory);
+	generate_dreamcast_iwad(output_directory, lump_offset);
 
 	generate_alt_wad(output_directory);
 
