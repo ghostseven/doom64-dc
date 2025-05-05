@@ -32,13 +32,13 @@
 // in `newlumpslist.h`
 //#define NUMALTLUMPS 311
 
-#define LUMP_S_START 0		
+#define LUMP_S_START 0
 #define LUMP_A001A0 1
 #define LUMP_LASSB0 346
 #define LUMP_PALSARG0 347
 #define LUMP_SARGA1 349
 #define LUMP_RECTO0 923
-#define LUMP_SAWGA0 924		
+#define LUMP_SAWGA0 924
 #define LUMP_LASRB0 965
 #define LUMP_S_END 966
 #define LUMP_T_START 967
@@ -47,14 +47,13 @@
 #define LUMP_MOUNTC 1488
 #define LUMP_MAP01 1489
 #define LUMP_MAP33 1521
-#define LUMP_DEMO1LMP 1522		
+#define LUMP_DEMO1LMP 1522
 
 #define TEXNUM(i) ((i) - (LUMP_T_START + 1))
 
 #if GENERATE_BUMP_WAD
 #include "textures.h"
 #endif
-
 
 char output_paths[1024];
 wadinfo_t wadfileptr;
@@ -404,7 +403,7 @@ void process_4bit_sprites(void)
 		free(curImg);
 		free(curPal->table);
 		free(curPal);
-	}	
+	}
 }
 
 void process_8bit_sprites(void)
@@ -1269,7 +1268,7 @@ void generate_nightdive_maps(char *wadfn, char *output_directory)
 				exit(-1);
 			}
 			nmap_total_write += nmap_wad_rv;
-		}		
+		}
 		fclose(nmap_fd);
 		// end WRITE RAW MAP LUMP TO DISK
 
@@ -1285,7 +1284,7 @@ void generate_nightdive_maps(char *wadfn, char *output_directory)
 	if (0 != nd_close) {
 		fprintf(stderr, "Error closing Nightdive Doom 64 WAD: %s\n", strerror(errno));
 		exit(-1);
-	}	
+	}
 }
 
 int main (int argc, char **argv)
@@ -1319,62 +1318,49 @@ int main (int argc, char **argv)
 		exit(-1);
 	}
 
-    if ( 4 == z64_wad_rv ) {
-    	if (strncasecmp(iwad, "IWAD", 4)) {
-    		fprintf(stderr, "invalid iwad id %c %c %c %c for 1.0\n",
-				iwad[0],
-				iwad[1],
-				iwad[2],
-				iwad[3]
-			);
+	if (4 == z64_wad_rv) {
+		if (strncasecmp(iwad, "IWAD", 4)) {
+			z64_seek_rv = fseek(z64_fd, DOOM64_1_1_OFFSET, SEEK_SET);
+			if (-1 == z64_seek_rv) {
+				fprintf(stderr, "Could not seek to IWAD 1.1 in Doom 64 ROM: %s\n", strerror(errno));
+				fclose(z64_fd);
+				exit(-1);
+			}
 
-    		z64_seek_rv = fseek(z64_fd, DOOM64_1_1_OFFSET, SEEK_SET);
-    		if (-1 == z64_seek_rv) {
-    			fprintf(stderr, "Could not seek to IWAD 1.1 in Doom 64 ROM: %s\n", strerror(errno));
-    			fclose(z64_fd);
-    			exit(-1);
-    		}
+			z64_wad_rv = fread(&iwad, 1, 4, z64_fd);
+			if (-1 == z64_wad_rv) {
+				fprintf(stderr, "Could not read IWAD from Doom 64 WAD: %s\n", strerror(errno));
+				fclose(z64_fd);
+				exit(-1);
+			}
 
-    		z64_wad_rv = fread(&iwad, 1, 4, z64_fd);
-    		if (-1 == z64_wad_rv) {
-    			fprintf(stderr, "Could not read IWAD from Doom 64 WAD: %s\n", strerror(errno));
-    			fclose(z64_fd);
-    			exit(-1);
-    		}
-
-    		if ( 4 == z64_wad_rv ) {
-    			if (strncasecmp(iwad, "IWAD", 4)) {
-    				fprintf(stderr, "invalid iwad id %c %c %c %c for 1.1\n",
-						iwad[0],
-						iwad[1],
-						iwad[2],
-						iwad[3]
-					);
-    				fclose(z64_fd);
+			if (4 == z64_wad_rv) {
+				if (strncasecmp(iwad, "IWAD", 4)) {
+					fprintf(stderr, "invalid iwad id for 1.0 and 1.1\n");
+					fclose(z64_fd);
 					exit(-1);
-	            } else {
-    				fprintf(stderr, "Found IWAD 1.1 identifier in Doom 64 ROM\n");
-              		final_seek = DOOM64_1_1_OFFSET;
-	                wad_size = DOOM64_1_1_WAD_SIZE;
-                    lump_offset = DOOM64_1_1_LUMP_OFFSET;
-	            }
-    		} else {
-    			fprintf(stderr, "Could not read full IWAD 1.1 identifier in Doom 64 ROM: %s\n", strerror(errno));
-    			fclose(z64_fd);
-    			exit(-1);
-            }
-
-    	} else {
-    		fprintf(stderr, "Found IWAD 1.0 identifier in Doom 64 ROM\n");
-          	final_seek = DOOM64_1_0_OFFSET;
-            wad_size = DOOM64_1_0_WAD_SIZE;
-            lump_offset = DOOM64_1_0_LUMP_OFFSET;
-        }
-    } else {
-    	fprintf(stderr, "Could not read full IWAD 1.0 identifier in Doom 64 ROM: %s\n", strerror(errno));
-    	fclose(z64_fd);
-    	exit(-1);
-    }
+				} else {
+					printf("1.1\n");
+					final_seek = DOOM64_1_1_OFFSET;
+					wad_size = DOOM64_1_1_WAD_SIZE;
+					lump_offset = DOOM64_1_1_LUMP_OFFSET;
+				}
+			} else {
+				fprintf(stderr, "Could not read full IWAD 1.1 identifier in Doom 64 ROM: %s\n", strerror(errno));
+				fclose(z64_fd);
+				exit(-1);
+			}
+		} else {
+			printf("1.0\n");
+			final_seek = DOOM64_1_0_OFFSET;
+			wad_size = DOOM64_1_0_WAD_SIZE;
+			lump_offset = DOOM64_1_0_LUMP_OFFSET;
+		}
+	} else {
+		fprintf(stderr, "Could not read full IWAD 1.0 identifier in Doom 64 ROM: %s\n", strerror(errno));
+		fclose(z64_fd);
+		exit(-1);
+	}
 
 	z64_seek_rv = fseek(z64_fd, final_seek, SEEK_SET);
 	if (-1 == z64_seek_rv) {
@@ -1393,7 +1379,7 @@ int main (int argc, char **argv)
 	z64_total_read = 0;
 	z64_wad_rv = fread(doom64wad, 1, wad_size, z64_fd);
 	if (-1 == z64_wad_rv) {
-		fprintf(stderr, "Could not read IWAD from Doom 64 WAD: %s\n", strerror(errno));
+		fprintf(stderr, "Could not read IWAD from Doom 64 ROM: %s\n", strerror(errno));
 		free(doom64wad);
 		fclose(z64_fd);
 		exit(-1);
@@ -1402,7 +1388,7 @@ int main (int argc, char **argv)
 	while (z64_total_read < wad_size) {
 		z64_wad_rv = fread(doom64wad + z64_total_read, 1, wad_size - z64_total_read, z64_fd);
 		if (-1 == z64_wad_rv) {
-			fprintf(stderr, "Could not read IWAD from Doom 64 WAD: %s\n", strerror(errno));
+			fprintf(stderr, "Could not read IWAD from Doom 64 ROM: %s\n", strerror(errno));
 			free(doom64wad);
 			fclose(z64_fd);
 			exit(-1);

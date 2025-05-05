@@ -98,14 +98,19 @@ Please follow the instructions for building KOS found in the wiki: [ https://dre
 
 ***N64 retail game support***
 
-Somehow acquire a Doom 64 ROM in Z64 format and name it `doom64.z64` .
+Somehow acquire a Doom 64 ROM in Z64 format and *name it all lowercase `doom64.z64` .*
 
-Check that your Doom 64 ROM is the correct one.
+Check that your Doom 64 ROM is a supported version (1.0, 1.1).
 
-The below is the expected md5sum output.
+The below is the expected md5sum output for 1.0:
 
     md5sum doom64.z64
     b67748b64a2cc7efd2f3ad4504561e0e doom64.z64
+
+The below is the expected md5sum output for 1.1:
+
+    md5sum doom64.z64
+    1b1378bb9ee819f740550f566745af73 doom64.z64
 
 Now place a copy of `doom64.z64` in the `wadtool` directory.
 
@@ -115,7 +120,7 @@ Buy the Nightdive Studios edition of Doom 64 (the 2020 PC release) from Steam or
 
 Check that your Doom 64 IWAD is the correct one.
 
-The below are two possible md5sum outputs that will lead the the correct N64 format maps being generated.
+The below are two possible md5sum outputs that will lead to the correct N64 format maps being generated.
 
     md5sum DOOM64.WAD
     654c57d19f5c4a52cf8c63e34caa2fd2 DOOM64.WAD
