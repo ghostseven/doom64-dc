@@ -85,7 +85,6 @@ typedef struct pstats_s {
 } pstats_t;
 
 float f_killvalue, f_itemvalue, f_secretvalue;
-int killvalue, itemvalue, secretvalue; // 800633B8, 800633BC, 800633C0
 pstats_t pstats; // 800633C4
 
 // used to accelerate or skip a stage
@@ -95,7 +94,7 @@ int nextstage; // 800633B4
 char timetext[32];
 int start_time;
 int end_time;
-int time_paused; 
+int time_paused;
 extern int extra_episodes;
 
 extern void P_FlushAllCached(void);
@@ -108,7 +107,7 @@ void IN_Start(void) // 80004AF0
 
 	P_FlushAllCached();
 
-	killvalue = itemvalue = secretvalue = -1;
+	f_killvalue = f_itemvalue = f_secretvalue = -1.0f;
 
 	if (totalkills)
 		pstats.killpercent = (players[0].killcount * 100) / totalkills;
@@ -189,12 +188,9 @@ int IN_Ticker(void) // 80004E24
 	if ((buttons != oldbuttons) && (buttons & (PAD_A | PAD_B | PAD_START | ALL_TRIG | ALL_CBUTTONS))) {
 		acceleratestage++;
 		if (acceleratestage == 1) {
-			killvalue = pstats.killpercent;
-			itemvalue = pstats.itempercent;
-			secretvalue = pstats.secretpercent;
-			f_killvalue = pstats.killpercent;
-			f_itemvalue = pstats.itempercent;
-			f_secretvalue = pstats.secretpercent;
+			f_killvalue = (float)pstats.killpercent;
+			f_itemvalue = (float)pstats.itempercent;
+			f_secretvalue = (float)pstats.secretpercent;
 			nextstage = 5;
 			last_ticon = 0;
 			S_StartSound(NULL, sfx_explode);
@@ -300,19 +296,19 @@ void IN_Drawer(void) // 80005164
 
 	ST_DrawString(-1, 36, "Finished", PACKRGBA(255, 255, 255, text_alpha), ST_BELOW_OVL);
 
-	if ((nextstage > 0) && (f_killvalue > -1)) {
+	if ((nextstage > 0) && (f_killvalue > -1.0f)) {
 		ST_DrawString(57, 60, "Kills", PACKRGBA(192, 0, 0, text_alpha), ST_BELOW_OVL);
 		ST_DrawString(248, 60, "%", PACKRGBA(192, 0, 0, text_alpha), ST_BELOW_OVL);
 		ST_DrawNumber(210, 60, (int)f_killvalue, 1, PACKRGBA(192, 0, 0, text_alpha), ST_BELOW_OVL);
 	}
 
-	if ((nextstage > 1) && (f_itemvalue > -1)) {
+	if ((nextstage > 1) && (f_itemvalue > -1.0f)) {
 		ST_DrawString(57, 78, "Items", PACKRGBA(192, 0, 0, text_alpha), ST_BELOW_OVL);
 		ST_DrawString(248, 78, "%", PACKRGBA(192, 0, 0, text_alpha), ST_BELOW_OVL);
 		ST_DrawNumber(210, 78, (int)f_itemvalue, 1, PACKRGBA(192, 0, 0, text_alpha), ST_BELOW_OVL);
 	}
 
-	if ((nextstage > 2) && (f_secretvalue > -1)) {
+	if ((nextstage > 2) && (f_secretvalue > -1.0f)) {
 		ST_DrawString(57, 99, "Secrets", PACKRGBA(192, 0, 0, text_alpha), ST_BELOW_OVL);
 		ST_DrawString(248, 99, "%", PACKRGBA(192, 0, 0, text_alpha), ST_BELOW_OVL);
 		ST_DrawNumber(210, 99, (int)f_secretvalue, 1, PACKRGBA(192, 0, 0, text_alpha), ST_BELOW_OVL);
