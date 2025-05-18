@@ -2193,6 +2193,7 @@ void M_DrawBackground(d64_bg_enum_t bg, int alpha)
 	pvr_list_prim(PVR_LIST_TR_POLY, &bg_stxr[num], sizeof(pvr_sprite_txr_t));
 
 	globallump = -1;
+	global_render_state.context_change = 1;
 }
 
 static pvr_vertex_t overlay_verts[4] = {
@@ -2210,6 +2211,7 @@ void M_DrawOverlay(void)
 	pvr_list_prim(PVR_LIST_TR_POLY, &overlay_hdr, sizeof(pvr_poly_hdr_t));
 	pvr_list_prim(PVR_LIST_TR_POLY, overlay_verts, sizeof(overlay_verts));
 	globallump = -1;
+	global_render_state.context_change = 1;
 }
 
 int M_ScreenTicker(void)

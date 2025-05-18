@@ -678,10 +678,9 @@ static void laser_triangle(const pvr_vertex_t *v0, const pvr_vertex_t *v1, const
 void R_RenderWorld(subsector_t *sub);
 
 void R_WallPrep(seg_t *seg);
-void R_RenderWall(seg_t *seg, r_wall_t *wall);
-/*int flags, int texture, int topHeight,
+void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
 	int bottomHeight, int topOffset, int bottomOffset,
-	int topColor, int bottomColor*/
+	int topColor, int bottomColor);
 void R_RenderSwitch(seg_t *seg, int texture, int topOffset, int color);
 
 void R_RenderPlane(leaf_t *leaf, int numverts, float zpos, int texture,
@@ -842,8 +841,6 @@ void R_RenderWorld(subsector_t *sub)
 	R_RenderThings(sub);
 }
 
-r_wall_t next_wall;
-
 void R_WallPrep(seg_t *seg)
 {
 	sector_t *backsector;
@@ -971,15 +968,10 @@ void R_WallPrep(seg_t *seg)
 				upcolor = tmp_lowcolor;
 			}
 
-			next_wall = (r_wall_t){li->flags, textures[side->toptexture],
+			R_RenderWall(seg, li->flags, textures[side->toptexture],
 						f_ceilingheight, b_ceilingheight,
 						rowoffs - height, rowoffs,
-						topcolor, bottomcolor};
-
-			R_RenderWall(seg, &next_wall); /* li->flags, textures[side->toptexture],
-						f_ceilingheight, b_ceilingheight,
-						rowoffs - height, rowoffs,
-						topcolor, bottomcolor); */
+						topcolor, bottomcolor);
 
 			m_top = b_ceilingheight; // clip middle top height
 
@@ -1031,14 +1023,11 @@ void R_WallPrep(seg_t *seg)
 				// clip middle color lower
 				lowcolor = tmp_upcolor;
 			}
-			next_wall = (r_wall_t){li->flags, textures[side->bottomtexture],
+
+			R_RenderWall(seg, li->flags, textures[side->bottomtexture],
 						b_floorheight, f_floorheight,
 						rowoffs, rowoffs + (b_floorheight - f_floorheight),
-						topcolor, bottomcolor};
-			R_RenderWall(seg, &next_wall); /* li->flags, textures[side->bottomtexture],
-						b_floorheight, f_floorheight,
-						rowoffs, rowoffs + (b_floorheight - f_floorheight),
-						topcolor, bottomcolor); */
+						topcolor, bottomcolor);
 
 			m_bottom = b_floorheight; // clip middle bottom height
 			if ((li->flags & (ML_CHECKFLOORHEIGHT | ML_SWITCHX08)) == ML_CHECKFLOORHEIGHT) {
@@ -1071,13 +1060,9 @@ void R_WallPrep(seg_t *seg)
 		bottomcolor = lowcolor;
 	}
 
-	next_wall = (r_wall_t){li->flags, textures[side->midtexture], m_top,
+	R_RenderWall(seg, li->flags, textures[side->midtexture], m_top,
 				 m_bottom, rowoffs - height, rowoffs, topcolor,
-				 bottomcolor};
-
-	R_RenderWall(seg, &next_wall); /* li->flags, textures[side->midtexture], m_top,
-				 m_bottom, rowoffs - height, rowoffs, topcolor,
-				 bottomcolor); */
+				 bottomcolor);
 
 	if ((li->flags & (ML_CHECKFLOORHEIGHT | ML_SWITCHX08)) == (ML_CHECKFLOORHEIGHT | ML_SWITCHX08)) {
 		if (SWITCHMASK(li->flags) == ML_SWITCHX02) {
@@ -1095,10 +1080,9 @@ static float last_width_inv = recip64;
 static float last_height_inv = recip64;
 static pvr_poly_hdr_t *cur_wall_hdr;
 
-void R_RenderWall(seg_t *seg, r_wall_t *w)
-/* int flags, int texture, int topHeight,
+void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
 	int bottomHeight, int topOffset, int bottomOffset,
-	int topColor, int bottomColor */
+	int topColor, int bottomColor)
 {
 	static int do_pt = 0;
 	d64ListVert_t *dV[4];
@@ -1107,11 +1091,10 @@ void R_RenderWall(seg_t *seg, r_wall_t *w)
 	vertex_t *v2;
 	int cms, cmt;
 	int wshift, hshift;
-
-	int texnum = (w->texture >> 4) - firsttex;
+	int texnum = (texture >> 4) - firsttex;
 	int ll = frontsector->lightlevel;
-	uint32_t tdc_col = D64_PVR_REPACK_COLOR(w->topColor);
-	uint32_t bdc_col = D64_PVR_REPACK_COLOR(w->bottomColor);
+	uint32_t tdc_col = D64_PVR_REPACK_COLOR(topColor);
+	uint32_t bdc_col = D64_PVR_REPACK_COLOR(bottomColor);
 	uint32_t tl_col = R_SectorLightColor(tdc_col, ll);
 	uint32_t bl_col = R_SectorLightColor(bdc_col, ll);
 
@@ -1134,25 +1117,42 @@ void R_RenderWall(seg_t *seg, r_wall_t *w)
 		}
 	}
 
-	if (w->texture != 16) {
-		if (w->flags & ML_HMIRROR)
+	// bug-fixing #79
+	// at this point, the texture doesnt exist, so no bump_txr_ptr exists
+	// global_render_state.has_bump == 0
+
+	if (texture != 16) {
+		if (flags & ML_HMIRROR)
 			cms = 2;
 		else
 			cms = 0;
 
-		if (w->flags & ML_VMIRROR)
+		if (flags & ML_VMIRROR)
 			cmt = 1;
 		else
 			cmt = 0;
 
-		if (global_render_state.context_change || (w->texture != globallump) || (globalcm != (cms | cmt))) {
+		if (global_render_state.context_change || (texture != globallump) || (globalcm != (cms | cmt))) {
 			pvr_poly_hdr_t *lastbh;
 			int *hdr_ptr;
 			int *bh_ptr;
 			int newhp2v;
 			int newbv;
 
+			// bug-fixing #79
+			// the texture and the bumpmap get loaded in the following call
+
 			data = P_CachePvrTexture(texnum, PU_CACHE);
+
+			// bug-fixing #79
+			// a bump_txr_ptr now exists, but global_render_state.has_bump is still 0
+
+			if (bump_txr_ptr[texnum]) {
+				if (global_render_state.quality == q_ultra) {
+					global_render_state.has_bump = 1;
+					defboargb = 0x7f5a00c0;
+				}
+			}
 
 			wshift = SwapShort(((textureN64_t *)data)->wshift);
 			hshift = SwapShort(((textureN64_t *)data)->hshift);
@@ -1160,7 +1160,7 @@ void R_RenderWall(seg_t *seg, r_wall_t *w)
 			last_height_inv = 1.0f / (float)(1 << hshift);
 
 			if (global_render_state.has_bump) {
-				cur_wall_hdr = &txr_hdr_bump[texnum][w->texture & 15];
+				cur_wall_hdr = &txr_hdr_bump[texnum][texture & 15];
 				lastbh = &bump_hdrs[texnum][0];
 				bumphdr = lastbh;
 				bh_ptr = &((int *)lastbh)[2];
@@ -1169,10 +1169,10 @@ void R_RenderWall(seg_t *seg, r_wall_t *w)
 				*bh_ptr = newbv;
 				do_pt = 0;
 			} else {
-				cur_wall_hdr = &txr_hdr_nobump[texnum][w->texture & 15];
+				cur_wall_hdr = &txr_hdr_nobump[texnum][texture & 15];
 				if (global_render_state.quality != q_ultra)
 					do_pt = 0;
-				else if (((w->texture>>4) >= 1323 && (w->texture>>4) <= 1330))
+				else if (((texture>>4) >= 1323 && (texture>>4) <= 1330))
 					do_pt = 0;
 				else
 					do_pt = 1;
@@ -1200,7 +1200,7 @@ void R_RenderWall(seg_t *seg, r_wall_t *w)
 
 			*hdr_ptr = newhp2v;
 
-			globallump = w->texture;
+			globallump = texture;
 			globalcm = (cms | cmt);
 
 			global_render_state.context_change = 1;
@@ -1216,20 +1216,20 @@ void R_RenderWall(seg_t *seg, r_wall_t *w)
 		global_render_state.normz = seg->nz;
 
 		float x1 = v1->x >> FRACBITS;
-		float y1 = (float)w->topHeight;
+		float y1 = (float)topHeight;
 		float z1 = -(v1->y >> FRACBITS);
 
 		float x2 = v2->x >> FRACBITS;
-		float y2 = (float)w->bottomHeight;
+		float y2 = (float)bottomHeight;
 		float z2 = -(v2->y >> FRACBITS);
 
 		float stu1 = (curTextureoffset >> FRACBITS);
 		float tu1 = stu1 * last_width_inv;
-		float tv1 = (float)w->topOffset * last_height_inv;
+		float tv1 = (float)topOffset * last_height_inv;
 
 		float stu2 = stu1 + (seg->length >> 4);
 		float tu2 = stu2 * last_width_inv;
-		float tv2 = (float)w->bottomOffset * last_height_inv;
+		float tv2 = (float)bottomOffset * last_height_inv;
 
 		if (!global_render_state.global_lit)
 			goto regular_wall;
@@ -1636,7 +1636,6 @@ void R_RenderPlane(leaf_t *leaf, int numverts, float zpos, int texture,
 	int v00, v01, v02;
 
 	leaf_t *lf = leaf;
-
 	int texnum = (texture >> 4) - firsttex;
 
 	uint32_t new_color = D64_PVR_REPACK_COLOR_ALPHA(color, alpha);
@@ -1654,7 +1653,7 @@ void R_RenderPlane(leaf_t *leaf, int numverts, float zpos, int texture,
 	}
 
 	global_render_state.in_floor = 1 + ceiling;
-	if (global_render_state.context_change || texture != globallump || globalcm != -1) {
+	if (global_render_state.context_change || (texture != globallump || globalcm != -1)) {
 		P_CachePvrTexture(texnum, PU_CACHE);
 		int *hdr_ptr;
 		int *bh_ptr;
@@ -2459,6 +2458,7 @@ void R_RenderThings(subsector_t *sub)
 
 			thing = vissprite_p->thing;
 			lump = vissprite_p->lump;
+
 			flip = vissprite_p->flip;
 			global_render_state.has_bump = 0;
 			global_render_state.context_change = 1;
@@ -2520,8 +2520,6 @@ void R_RenderThings(subsector_t *sub)
 				nosprite = 0;
 				sheet++;
 
-				global_render_state.context_change = 1;
-
 				if (menu_settings.VideoFilter)
 					theheader = &pvr_sprite_hdr;
 				else
@@ -2556,7 +2554,6 @@ void R_RenderThings(subsector_t *sub)
 				float reciphp2 = approx_recip((float)hp2);
 
 				sheet = 0;
-				global_render_state.context_change = 1;
 
 				if (external_pal(lump) && thing->info->palette) {
 					void *newlump;
