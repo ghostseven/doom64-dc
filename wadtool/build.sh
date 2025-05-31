@@ -4,11 +4,11 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 echo "Script dir is: $SCRIPT_DIR"
 if ! [ -f "$SCRIPT_DIR/wadtool" ]; then
   echo "Compiling wadtool"
-  gcc -Wno-unused-result -O3 -c "$SCRIPT_DIR/decodes.c" -o "$SCRIPT_DIR/decodes.o"
-  gcc -Wno-unused-result -O3 -c "$SCRIPT_DIR/encode.c" -o "$SCRIPT_DIR/encode.o"
-  gcc -Wno-unused-result -O3 -c "$SCRIPT_DIR/imgproc.c" -o "$SCRIPT_DIR/imgproc.o"
-  gcc -Wno-unused-result -O3 -c "$SCRIPT_DIR/wadtool.c" -o "$SCRIPT_DIR/wadtool.o"
-  gcc -Wno-unused-result -O3 -c "$SCRIPT_DIR/mapconv.c" -o "$SCRIPT_DIR/mapconv.o"
+  gcc -fno-common -Wno-unused-result -O3 -c "$SCRIPT_DIR/decodes.c" -o "$SCRIPT_DIR/decodes.o"
+  gcc -fno-common -Wno-unused-result -O3 -c "$SCRIPT_DIR/encode.c" -o "$SCRIPT_DIR/encode.o"
+  gcc -fno-common -Wno-unused-result -O3 -c "$SCRIPT_DIR/imgproc.c" -o "$SCRIPT_DIR/imgproc.o"
+  gcc -fno-common -Wno-unused-result -O3 -c "$SCRIPT_DIR/wadtool.c" -o "$SCRIPT_DIR/wadtool.o"
+  gcc -fno-common -Wno-unused-result -O3 -c "$SCRIPT_DIR/mapconv.c" -o "$SCRIPT_DIR/mapconv.o"
   gcc "$SCRIPT_DIR/decodes.o" "$SCRIPT_DIR/encode.o" "$SCRIPT_DIR/imgproc.o" "$SCRIPT_DIR/mapconv.o" "$SCRIPT_DIR/wadtool.o" -o "$SCRIPT_DIR/wadtool"
 fi
 
