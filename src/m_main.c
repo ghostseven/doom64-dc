@@ -379,6 +379,9 @@ doom64_settings_t  __attribute__((aligned(32))) menu_settings;
 
 int force_vmu_refresh = 0;
 
+#define M_FILTER_NONE 0
+#define M_FILTER_BILINEAR 2
+
 void M_ResetSettings(doom64_settings_t *s) {
 	s->HUDopacity = 255;
 	s->SfxVolume = 45;
@@ -388,7 +391,7 @@ void M_ResetSettings(doom64_settings_t *s) {
 	s->M_SENSITIVITY = 27;
 	s->MotionBob = 16 << FRACBITS;
 	s->Rumble = 0;
-	s->VideoFilter = PVR_FILTER_BILINEAR;
+	s->VideoFilter = M_FILTER_BILINEAR;
 	s->Autorun = 1;
 	s->StoryText = 1;
 	s->MapStats = 1;
@@ -1459,10 +1462,10 @@ int M_MenuTicker(void)
 			case 50: // [GEC and Immorpher] Video filtering mode
 				if (truebuttons) {
 					S_StartSound(NULL, sfx_switch2);
-					if (menu_settings.VideoFilter == PVR_FILTER_BILINEAR) {
-						menu_settings.VideoFilter = PVR_FILTER_NONE;
+					if (menu_settings.VideoFilter == M_FILTER_BILINEAR) {
+						menu_settings.VideoFilter = M_FILTER_NONE;
 					} else {
-						menu_settings.VideoFilter = PVR_FILTER_BILINEAR;
+						menu_settings.VideoFilter = M_FILTER_BILINEAR;
 					}
 					force_filter_flush = 1;
 					return ga_nothing;
