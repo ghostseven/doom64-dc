@@ -1952,7 +1952,7 @@ void M_VideoDrawer(void)
 			else if (global_render_state.quality == q_ultra)
 				text = M_TXT91;
 		} else if (casepos == 50) { // [GEC and Immorpher] New video filter
-			text = (menu_settings.VideoFilter == PVR_FILTER_BILINEAR) ? "On" : "Off";
+			text = (menu_settings.VideoFilter == M_FILTER_BILINEAR) ? "On" : "Off";
 		} else {
 			text = NULL;
 		}
