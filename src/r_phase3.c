@@ -114,45 +114,28 @@ static inline unsigned nearz_vismask(d64Poly_t *poly)
 	return rvm;
 }
 
-// must have
-// `float t` and `float invt = 1.0f - t;`
-// defined local to calling function
-// this is just for cleaner code
-#define lerp(a, b) (invt * (a) + t * (b))
-#if 1
+#define lerp(a, b, t) ((a) + (((b) - (a))*(t)))
+
 // lerp two 32-bit colors
-static uint32_t color_lerp(float ft, uint32_t c1, uint32_t c2) {
+static uint32_t color_lerp(float ft, uint32_t c1, uint32_t c2)
+{
 	uint8_t t = (ft * 255);
-   	uint32_t maskRB = 0xFF00FF;  // Mask for Red & Blue channels
-    uint32_t maskG  = 0x00FF00;  // Mask for Green channel
-    uint32_t maskA  = 0xFF000000; // Mask for Alpha channel
+	uint32_t maskRB = 0xFF00FF;	 // Mask for Red & Blue channels
+	uint32_t maskG = 0x00FF00;	 // Mask for Green channel
+	uint32_t maskA = 0xFF000000; // Mask for Alpha channel
 
-    // Interpolate Red & Blue
-    uint32_t rb = ((((c2 & maskRB) - (c1 & maskRB)) * t) >> 8) + (c1 & maskRB);
-    
-    // Interpolate Green
-    uint32_t g  = ((((c2 & maskG) - (c1 & maskG)) * t) >> 8) + (c1 & maskG);
+	// Interpolate Red & Blue
+	uint32_t rb = ((((c2 & maskRB) - (c1 & maskRB)) * t) >> 8) + (c1 & maskRB);
 
-    // Interpolate Alpha
-    uint32_t a  = ((((c2 & maskA) >> 24) - ((c1 & maskA) >> 24)) * t) >> 8;
-    a = (a + (c1 >> 24)) << 24;  // Shift back into position
+	// Interpolate Green
+	uint32_t g = ((((c2 & maskG) - (c1 & maskG)) * t) >> 8) + (c1 & maskG);
 
-    return (a & maskA) | (rb & maskRB) | (g & maskG);
+	// Interpolate Alpha
+	uint32_t a = ((((c2 & maskA) >> 24) - ((c1 & maskA) >> 24)) * t) >> 8;
+	a = (a + (c1 >> 24)) << 24; // Shift back into position
+
+	return (a & maskA) | (rb & maskRB) | (g & maskG);
 }
-
-#else
-static uint32_t color_lerp(float t, uint32_t v1c, uint32_t v2c) {
-	const float invt = 1.0f - t;
-
-	// ARGB8888
-	uint8_t c0 = lerp(((v1c >> 24) & 0xff), ((v2c >> 24) & 0xff));
-	uint8_t c1 = lerp(((v1c >> 16) & 0xff), ((v2c >> 16) & 0xff));
-	uint8_t c2 = lerp(((v1c >> 8) & 0xff), ((v2c >> 8) & 0xff));
-	uint8_t c3 = lerp(((v1c) & 0xff), ((v2c) & 0xff));
-
-	return D64_PVR_PACK_COLOR(c0, c1, c2, c3);
-}
-#endif
 
 // lerp two d64ListVert_t
 // called if one of the input verts is determined to be behind the near-z plane
@@ -163,23 +146,17 @@ static void nearz_clip(const d64ListVert_t *restrict v1,
 	const float d0 = v1->w + v1->v->z;
 	const float d1 = v2->w + v2->v->z;
 
-//	float t = 0.000001f;
-//	if (d1 != d0) {
-//		t += (fabs(d0) * (1.0f / sqrtf((d1 - d0) * (d1 - d0))));
-//	}
-
 	// abs(d0 / (d1 - d0))
 	float t = (fabsf(d0) * (1.0f / sqrtf((d1 - d0) * (d1 - d0)))) + 0.000001f;
-	float invt = 1.0f - t;
 
-	out->w = lerp(v1->w, v2->w);
+	out->w = lerp(v1->w, v2->w, t);
 
-	out->v->x = lerp(v1->v->x, v2->v->x);
-	out->v->y = lerp(v1->v->y, v2->v->y);
-	out->v->z = lerp(v1->v->z, v2->v->z);
+	out->v->x = lerp(v1->v->x, v2->v->x, t);
+	out->v->y = lerp(v1->v->y, v2->v->y, t);
+	out->v->z = lerp(v1->v->z, v2->v->z, t);
 
-	out->v->u = lerp(v1->v->u, v2->v->u);
-	out->v->v = lerp(v1->v->v, v2->v->v);
+	out->v->u = lerp(v1->v->u, v2->v->u, t);
+	out->v->v = lerp(v1->v->v, v2->v->v, t);
 
 	out->v->argb = color_lerp(t, v1->v->argb, v2->v->argb);
 	out->v->oargb = color_lerp(t, v1->v->oargb, v2->v->oargb);
@@ -1165,7 +1142,7 @@ void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
 				bumphdr = lastbh;
 				bh_ptr = &((int *)lastbh)[2];
 				newbv = *bh_ptr;
-				newbv = (newbv & 0xFFF98FFF) | ((cms | cmt) << 17) | (menu_settings.VideoFilter << 12);
+				newbv = (newbv & 0xFFF18FFF) | ((cms | cmt) << 17) | (menu_settings.VideoFilter << 12);
 				*bh_ptr = newbv;
 				do_pt = 0;
 			} else {
@@ -1192,7 +1169,7 @@ void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
 
 			// cms is S (U) mirror
 			// cmt is T (V) mirror
-			newhp2v = (newhp2v & 0xFFF98FFF) | ((cms | cmt) << 17) | (menu_settings.VideoFilter << 12);
+			newhp2v = (newhp2v & 0xFFF18FFF) | ((cms | cmt) << 17) | (menu_settings.VideoFilter << 12);
 
 			// fix Lost Levels map 2 "BLOOD" waterfall
 			if (!global_render_state.has_bump)
@@ -1527,7 +1504,7 @@ void R_RenderSwitch(seg_t *seg, int texture, int topOffset, int color)
 
 		bh_ptr = &((int *)lastbh)[2];
 		newbv = *bh_ptr;
-		newbv = (newbv & 0xFFF98FFF) | (menu_settings.VideoFilter << 12);
+		newbv = (newbv & 0xFFF18FFF) | (menu_settings.VideoFilter << 12);
 
 		*bh_ptr = newbv;
 	} else {
@@ -1543,7 +1520,7 @@ void R_RenderSwitch(seg_t *seg, int texture, int topOffset, int color)
 	hdr_ptr = &((int *)curhdr)[2];
 
 	newhp2v = *hdr_ptr;
-	newhp2v = (newhp2v & 0xFFF98FFF) | (menu_settings.VideoFilter << 12);
+	newhp2v = (newhp2v & 0xFFF18FFF) | (menu_settings.VideoFilter << 12);
 	*hdr_ptr = newhp2v;
 
 	globallump = texture;
@@ -1666,7 +1643,7 @@ void R_RenderPlane(leaf_t *leaf, int numverts, float zpos, int texture,
 			bumphdr = lastbh;
 			bh_ptr = &((int *)lastbh)[2];
 			newbv = *bh_ptr;
-			newbv = (newbv & 0xFFF98FFF) | (menu_settings.VideoFilter << 12);
+			newbv = (newbv & 0xFFF18FFF) | (menu_settings.VideoFilter << 12);
 			*bh_ptr = newbv;
 			do_pt = 0;
 		} else {
@@ -1694,7 +1671,7 @@ void R_RenderPlane(leaf_t *leaf, int numverts, float zpos, int texture,
 		hdr_ptr = &((int *)cur_plane_hdr)[2];
 
 		newhp2v = *hdr_ptr;
-		newhp2v = (newhp2v & 0xFFFF8FFF) | (menu_settings.VideoFilter << 12);
+		newhp2v = (newhp2v & 0xFFF18FFF) | (menu_settings.VideoFilter << 12);
 		if (!global_render_state.has_bump) {
 			if (alpha != 255)
 				newhp2v = (newhp2v & 0x00FFFFFF) | 0x38000000;
